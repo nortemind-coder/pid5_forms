@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Questionário PID-5</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{
+      --brand:#1f2937; --bege:#debba2; --bg:#f9fafb; --card:#ffffff;
+      --text:#111827; --muted:#6b7280; --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:var(--bg)}
+    header{padding:16px 24px;background:var(--card);border-bottom:1px solid #eee;position:sticky;top:0;z-index:10}
+    .container{max-width:900px;margin:0 auto;padding:16px 24px}
+    h1{margin:8px 0 0;font-size:clamp(20px,3.2vw,28px)}
+    .meta{color:var(--muted);margin:6px 0 0}
+    .list{display:flex;flex-direction:column;gap:14px;margin-top:12px}
+    .item{background:var(--card);border-radius:12px;border:1px solid #eee;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+    .label{font-weight:600;line-height:1.35}
+    .actions{display:flex;align-items:center;gap:12px;justify-content:flex-end;margin:20px 0 84px}
+    .btn{border:none;background:var(--brand);color:#fff;padding:12px 18px;border-radius:999px;font-weight:700;cursor:not-allowed;opacity:.6;transition:opacity .2s ease,transform .05s ease}
+    .btn.ready{cursor:pointer;opacity:1}
+    .btn:active{transform:translateY(1px)}
+    .footer{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid #eee;padding:10px 16px;display:flex;align-items:center;gap:12px;justify-content:space-between}
+    .progress-wrap{flex:1;background:#f1f1f1;border-radius:999px;height:12px;overflow:hidden;border:1px solid #e5e7eb}
+    .progress{height:100%;width:0%;background:var(--bege);transition:width .2s ease}
+    .counter{min-width:200px;text-align:right;color:var(--muted)}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+    .field{display:flex;flex-direction:column;gap:6px;min-width:220px;flex:1}
+    .input{border:1px solid #ddd;border-radius:10px;padding:10px 12px;font-size:14px;background:#fff}
+    .select{width:100%;border:1px solid #ddd;border-radius:10px;padding:10px 12px;font-size:14px;background:#fff;cursor:pointer}
+    @media (max-width:520px){.counter{min-width:auto;font-size:12px}.actions{justify-content:center}}
+  </style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <a href="index.html" style="text-decoration:none;color:var(--muted)">← Início</a>
+    <h1>PID-5 – Personality Inventory for DSM-5</h1>
+    <p class="meta">Selecione uma opção por item. O botão Enviar só libera ao completar todas as 220. Portanto, não saia desta tela para não perder suas respostas e ter que reiniciar o preenchimento.</p>
+
+    <!-- Dados básicos (não entram no progresso) -->
+    <div class="row">
+      <div class="field">
+        <label for="nome"><strong>Nome</strong></label>
+        <input id="nome" class="input" type="text" placeholder="Digite o nome" required>
+      </div>
+      <div class="field" style="max-width:180px">
+        <label for="idade"><strong>Idade</strong></label>
+        <input id="idade" class="input" type="number" min="0" max="120" step="1" placeholder="Ex.: 34" required>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <div id="list" class="list" aria-live="polite"></div>
+  <div class="actions">
+    <button id="submitBtn" class="btn" disabled>Enviar respostas</button>
+  </div>
+</main>
+
+<!-- Rodapé com barra de progresso bege -->
+<div class="footer" role="status" aria-live="polite">
+  <div class="progress-wrap"><div id="progress" class="progress"></div></div>
+  <div id="counter" class="counter">0 / 220 respondidas</div>
+</div>
+
+<script>
+  // Opções Likert (ordem fixa)
+  const OPTIONS = [
+    'Discordo totalmente',
+    'Discordo um pouco',
+    'Nem concordo e nem discordo',
+    'Concordo um pouco',
+    'Concordo totalmente'
+  ];
+
+  // ===== LISTA DAS 220 AFIRMATIVAS =====
+  const QUESTIONS = [
+    "Eu não consigo extrair tanto prazer das coisas quanto outras pessoas parecem conseguir.",
+    "Tem muita gente querendo me prejudicar.",
+    "As pessoas me descreveriam como imprudente.",
+    "Sinto que ajo totalmente por impulso.",
+    "Frequentemente tenho ideias tão incomuns que não consigo explicá-las a ninguém.",
+    "Perco o fio da meada nas conversas porque outras coisas me chamam a atenção.",
+    "Evito situações de risco.",
+    "Quando se trata das minhas emoções, as pessoas me dizem que sou uma pessoa fria.",
+    "Eu mudo o que faço dependendo do que os outros querem.",
+    "Prefiro não me aproximar muito das pessoas.",
+    "Eu frequentemente me envolvo em brigas físicas.",
+    "Eu temo ficar sem alguém que me ame.",
+    "Ser rude e antipático faz parte de quem eu sou.",
+    "Eu faço coisas para garantir que as pessoas me notem.",
+    "Normalmente faço o que os outros acham que eu deveria fazer.",
+    "Normalmente faço as coisas por impulso, sem pensar nas possíveis consequências.",
+    "Mesmo sabendo que não devo fazer isso, não consigo parar de tomar decisões precipitadas.",
+    "Às vezes, minhas emoções mudam sem nenhum motivo aparente.",
+    "Eu realmente não me importo se faço outras pessoas sofrerem.",
+    "Prefiro ficar na minha.",
+    "Eu costumo dizer coisas que os outros acham estranhas ou esquisitas.",
+    "Eu sempre faço as coisas por impulso.",
+    "Nada parece me interessar muito.",
+    "Outras pessoas parecem achar meu comportamento estranho.",
+    "As pessoas me dizem que eu penso sobre as coisas de uma maneira muito estranha.",
+    "Quase nunca aproveito a vida.",
+    "Muitas vezes sinto que nada do que faço realmente importa.",
+    "Eu sou ríspido com as pessoas quando elas fazem pequenas coisas que me irritam.",
+    "Não consigo me concentrar em nada.",
+    "Sou uma pessoa enérgica.",
+    "Outros me consideram irresponsável.",
+    "Posso ser maldoso quando preciso.",
+    "Meus pensamentos frequentemente seguem rumos estranhos ou incomuns.",
+    "Já me disseram que passo muito tempo me certificando de que as coisas estejam exatamente no lugar certo.",
+    "35. Evito esportes e atividades arriscadas.",
+    "Tenho dificuldade em distinguir entre sonhos e a vida desperta.",
+    "Às vezes tenho essa sensação estranha de que partes do meu corpo parecem estar mortas ou que não me pertencem mais.",
+    "Eu me irrito com facilidade.",
+    "Não tenho limites quando se trata de fazer coisas perigosas.",
+    "Para ser honesto, eu sou simplesmente mais importante do que as outras pessoas.",
+    "Eu invento histórias sobre coisas que aconteceram que são totalmente falsas.",
+    "As pessoas costumam falar de coisas que eu faço, das quais não me lembro de jeito nenhum.",
+    "Eu faço as coisas de forma que as pessoas simplesmente tenham que me admirar.",
+    "É estranho, mas às vezes objetos comuns parecem ter uma forma diferente do habitual.",
+    "Eu não costumo ter reações emocionais muito duradouras às coisas.",
+    "É difícil para mim interromper uma atividade, mesmo quando é hora de fazê-lo.",
+    "Não sou bom em planejar com antecedência.",
+    "Eu faço muitas coisas que outros consideram arriscadas.",
+    "pessoas me dizem que eu me concentro demais em detalhes insignificantes.",
+    "Eu me preocupo muito em ficar sozinha.",
+    "Perdi oportunidades porque estava ocupado tentando aperfeiçoar algo que estava fazendo perfeitamente.",
+    "Meus pensamentos muitas vezes não fazem sentido para os outros.",
+    "Eu costumo inventar coisas sobre mim para conseguir o que quero.",
+    "Não me incomoda muito ver outras pessoas se machucando.",
+    "As pessoas costumam me olhar como se eu tivesse dito algo muito estranho.",
+    "As pessoas não percebem que estou bajulando-as para conseguir algo em troca.",
+    "Prefiro estar num relacionamento ruim do que ficar sozinha.",
+    "Normalmente penso antes de agir.",
+    "Frequentemente tenho visões vívidas, semelhantes a sonhos, quando estou adormecendo ou acordando.",
+    "Continuo abordando as coisas da mesma maneira, mesmo quando não está funcionando.",
+    "Estou muito insatisfeito comigo mesmo.",
+    "Tenho reações emocionais muito mais intensas do que quase todas as outras pessoas.",
+    "Eu faço o que os outros me mandam fazer.",
+    "Não suporto ficar sozinho, nem mesmo por algumas horas.",
+    "Possuo qualidades excepcionais que poucos outros têm.",
+    "O futuro me parece realmente sem esperança.",
+    "Eu gosto de correr riscos.",
+    "Não consigo atingir meus objetivos porque outras coisas capturam minha atenção.",
+    "Quando quero fazer algo, não deixo que a possibilidade de ser arriscado me impeça.",
+    "Outras pessoas parecem achar que sou bastante estranho ou incomum.",
+    "Meus pensamentos são estranhos e imprevisíveis.",
+    "Não me importo com os sentimentos dos outros.",
+    "É preciso pisar em alguns calos para conseguir o que se quer na vida.",
+    "Eu adoro chamar a atenção das outras pessoas.",
+    "Faço tudo o que estiver ao meu alcance para evitar qualquer tipo de atividade em grupo.",
+    "Posso ser astuto se isso significar conseguir o que quero.",
+    "Às vezes, quando olho para um objeto familiar, é como se o estivesse vendo pela primeira vez.",
+    "É difícil para mim mudar de uma atividade para outra.",
+    "Eu me preocupo muito com coisas terríveis que podem acontecer.",
+    "Tenho dificuldade em mudar a forma como faço algo, mesmo que o que estou fazendo não esteja dando certo.",
+    "O mundo seria melhor se eu estivesse morto.",
+    "Eu mantenho distância das pessoas.",
+    "Muitas vezes não consigo controlar meus pensamentos.",
+    "Eu não me emociono.",
+    "Eu me ressinto de receber ordens, mesmo de pessoas em posição de autoridade.",
+    "Tenho muita vergonha de como desapontei as pessoas em vários pequenos detalhes.",
+    "Evito tudo que possa ser minimamente perigoso.",
+    "Tenho dificuldade em perseguir objetivos específicos, mesmo por curtos períodos de tempo.",
+    "Prefiro manter o romance fora da minha vida.",
+    "Eu jamais faria mal a outra pessoa.",
+    "Eu não demonstro emoções com muita intensidade.",
+    "Eu tenho um temperamento muito curto.",
+    "Frequentemente me preocupo que algo ruim aconteça devido a erros que cometi no passado.",
+    "Tenho algumas habilidades incomuns, como, por vezes, saber exatamente o que alguém está pensando.",
+    "Eu fico muito nervoso quando penso no futuro.",
+    "Raramente me preocupo com as coisas.",
+    "Eu gosto de estar apaixonado.",
+    "Prefiro jogar pelo seguro a correr riscos desnecessários.",
+    "Às vezes, ouvi coisas que outros não conseguiram ouvir.",
+    "Eu fico obcecado por certas coisas e não consigo parar.",
+    "pessoas me dizem que é difícil saber o que estou sentindo.",
+    "Sou uma pessoa extremamente emotiva.",
+    "Outros se aproveitariam de mim se pudessem.",
+    "Muitas vezes me sinto um fracasso.",
+    "Se algo que eu faço não for absolutamente perfeito, simplesmente não é aceitável.",
+    "Frequentemente tenho experiências incomuns, como sentir a presença de alguém que não está realmente lá.",
+    "Sou bom em fazer as pessoas fazerem o que eu quero que elas façam.",
+    "Eu termino relacionamentos se eles começam a ficar íntimos.",
+    "Estou sempre preocupado com alguma coisa.",
+    "Eu me preocupo com quase tudo.",
+    "Eu gosto de me destacar na multidão.",
+    "Não me importo de correr um pouco de risco de vez em quando.",
+    "Meu comportamento costuma ser ousado e chama a atenção das pessoas.",
+    "Sou melhor do que quase todos os outros.",
+    "pessoas reclamam da minha necessidade de ter tudo organizado.",
+    "Sempre me certifico de dar o troco em quem me faz mal.",
+    "Estou sempre em guarda, com medo de que alguém tente me enganar ou me prejudicar.",
+    "Tenho dificuldade em manter o foco naquilo que precisa ser feito.",
+    "Eu falo muito sobre suicídio.",
+    "Eu simplesmente não tenho muito interesse em ter relacionamentos sexuais.",
+    "Eu costumo ficar preso em algumas coisas.",
+    "Eu me emociono facilmente, muitas vezes por motivos banais.",
+    "Mesmo que isso enlouqueça outras pessoas, insisto na perfeição absoluta em tudo o que faço.",
+    "Quase nunca me sinto feliz com minhas atividades diárias.",
+    "Usar palavras doces me ajuda a conseguir o que quero.",
+    "Às vezes é preciso exagerar para se dar bem.",
+    "Temo ficar sozinho na vida mais do que qualquer outra coisa.",
+    "Eu me apego a uma única maneira de fazer as coisas, mesmo quando é óbvio que não vai funcionar.",
+    "Costumo ser bastante descuidado com as minhas coisas e com as coisas dos outros.",
+    "Sou uma pessoa muito ansiosa.",
+    " As pessoas são basicamente confiáveis.",
+    "Eu me distraio facilmente.",
+    "Parece que estou sempre sendo tratado injustamente pelos outros.",
+    "Não hesito em trapacear se isso me trouxer vantagem.",
+    "Verifico as coisas várias vezes para garantir que estejam perfeitas.",
+    "Eu não gosto de passar tempo com outras pessoas.",
+    "Sinto-me compelido a continuar fazendo as coisas, mesmo quando isso não faz muito sentido.",
+    "Nunca sei para onde minhas emoções vão me levar de um momento para o outro.",
+    "Vi coisas que na verdade não estavam lá.",
+    "Para mim, é importante que as coisas sejam feitas de uma determinada maneira.",
+    "Eu sempre espero que o pior aconteça.",
+    "Eu tento dizer a verdade mesmo quando é difícil.",
+    "Acredito que algumas pessoas conseguem mover coisas com a mente.",
+    "Não consigo me concentrar nas coisas por muito tempo.",
+    "Eu evito relacionamentos românticos.",
+    "Não estou interessado em fazer amigos.",
+    "Eu falo o mínimo possível quando lido com pessoas.",
+    "Sou inútil como pessoa.",
+    "Eu faria praticamente qualquer coisa para evitar que alguém me abandonasse.",
+    "Às vezes, consigo influenciar outras pessoas simplesmente enviando-lhes meus pensamentos.",
+    "A vida me parece bastante sombria.",
+    "Penso nas coisas de maneiras estranhas que não fazem sentido para a maioria das pessoas.",
+    "Não me importo se minhas ações magoam os outros.",
+    "Às vezes me sinto \"controlado\" por pensamentos que pertencem a outra pessoa.",
+    "Eu realmente vivo a vida ao máximo.",
+    "Eu faço promessas que na verdade não pretendo cumprir.",
+    "Nada parece me fazer sentir bem.",
+    "Eu me irrito facilmente com todo tipo de coisa.",
+    "Eu faço o que quero, independentemente de quão inseguro possa ser.",
+    "Eu frequentemente esqueço de pagar minhas contas.",
+    "Eu não gosto de me aproximar muito das pessoas.",
+    "Sou bom em enganar as pessoas.",
+    "Tudo me parece sem sentido.",
+    "Eu nunca corro riscos.",
+    "Eu me emociono com qualquer coisinha.",
+    "Não tem problema nenhum se eu magoar os sentimentos de outras pessoas.",
+    "Eu nunca demonstro emoções aos outros.",
+    "Muitas vezes me sinto simplesmente miserável.",
+    "Eu não tenho valor como pessoa.",
+    "Normalmente sou bastante hostil.",
+    "Eu fugi da cidade para evitar responsabilidades.",
+    "Já me disseram mais de uma vez que tenho uma série de manias ou hábitos estranhos.",
+    "Eu gosto de ser uma pessoa que chama a atenção.",
+    "Estou sempre com medo ou apreensivo com relação a coisas ruins que possam acontecer.",
+    "Eu nunca quero ficar sozinho.",
+    "Continuo tentando aperfeiçoar as coisas, mesmo quando já as deixei tão boas quanto provavelmente poderiam ficar.",
+    "Raramente sinto que as pessoas que conheço estão tentando tirar vantagem de mim.",
+    "Eu sei que vou cometer suicídio mais cedo ou mais tarde.",
+    "Eu conquistei muito mais do que quase qualquer pessoa que eu conheça.",
+    "Certamente posso usar meu charme se precisar conseguir o que quero.",
+    "Minhas emoções são imprevisíveis.",
+    "Eu não lido com pessoas a menos que seja necessário.",
+    "Não me importo com os problemas dos outros.",
+    "Não costumo reagir muito a coisas que parecem emocionar os outros.",
+    "Tenho vários hábitos que os outros consideram excêntricos ou estranhos.",
+    "Eu evito eventos sociais.",
+    "Eu mereço tratamento especial.",
+    "Fico realmente irritado quando as pessoas me insultam, mesmo que seja de uma forma insignificante.",
+    "Raramente me entusiasmo com alguma coisa.",
+    "Suspeito que até mesmo meus supostos “amigos” me traem muito.",
+    "Eu anseio por atenção.",
+    "Às vezes acho que alguém está apagando pensamentos da minha cabeça.",
+    "Tenho períodos em que me sinto desconectado do mundo ou de mim mesmo.",
+    "Frequentemente, observo conexões inusitadas entre coisas que a maioria das pessoas não percebe.",
+    "Não penso em me machucar quando estou fazendo coisas que podem ser perigosas.",
+    "Eu simplesmente não vou tolerar que as coisas estejam fora de seus devidos lugares.",
+    "Muitas vezes tenho que lidar com pessoas que são menos importantes do que eu.",
+    "Às vezes bato nas pessoas para lembrá-las de quem manda.",
+    "Me distraio facilmente até com pequenas distrações.",
+    "Eu gosto de fazer as pessoas no poder parecerem estúpidas.",
+    "Eu simplesmente falto a compromissos ou reuniões se não estou com vontade.",
+    "Eu tento fazer o que os outros querem que eu faça.",
+    "Prefiro ficar sozinho a ter um parceiro romântico próximo.",
+    "Sou muito impulsivo.",
+    "Frequentemente tenho pensamentos que fazem sentido para mim, mas que outras pessoas consideram estranhos.",
+    "Eu uso as pessoas para conseguir o que quero.",
+    "Não vejo sentido em me sentir culpado por coisas que fiz e que magoaram outras pessoas.",
+    "Na maioria das vezes, não vejo sentido em ser amigável.",
+    "Já tive algumas experiências muito estranhas, difíceis de explicar.",
+    "Eu cumpro meus compromissos.",
+    "Eu gosto de chamar a atenção para mim.",
+    "Eu me sinto culpado na maior parte do tempo.",
+    "Frequentemente, eu me \"desligo\" e, de repente, volto a mim e percebo que muito tempo se passou.",
+    "Mentir é fácil para mim.",
+    "Eu detesto correr riscos.",
+    "Sou grosseiro e ríspido com qualquer um que mereça.",
+    "As coisas ao meu redor muitas vezes parecem irreais, ou mais reais do que o normal.",
+    "Eu distorcerei a verdade se isso me beneficiar.",
+    "É fácil para mim tirar vantagem dos outros.",
+    "Eu tenho um jeito rigoroso de fazer as coisas."
+  ];
+
+  const listEl = document.getElementById('list');
+  const progressEl = document.getElementById('progress');
+  const counterEl  = document.getElementById('counter');
+  const submitBtn  = document.getElementById('submitBtn');
+  const nomeEl     = document.getElementById('nome');
+  const idadeEl    = document.getElementById('idade');
+
+  function renderQuestions(){
+    const frag = document.createDocumentFragment();
+    QUESTIONS.forEach((q, idx) => {
+      const it = document.createElement('div');
+      it.className = 'item';
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = `${idx+1}. ${q}`;
+
+      // SELECT com placeholder
+      const select = document.createElement('select');
+      select.name = `q${idx+1}`;
+      select.className = 'select';
+
+      const empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = 'Selecione uma opção';
+      select.appendChild(empty);
+
+      OPTIONS.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt;
+        option.textContent = opt;
+        select.appendChild(option);
+      });
+
+      it.appendChild(label);
+      it.appendChild(select);
+      frag.appendChild(it);
+    });
+    listEl.appendChild(frag);
+  }
+
+  function getAnsweredCount(){
+    let count = 0;
+    for (let i = 1; i <= 220; i++){
+      const sel = document.querySelector(`select[name="q${i}"]`);
+      if (sel && sel.value !== '') count++;
+    }
+    return count;
+  }
+
+  function canSubmit(){
+    const nomeOk  = nomeEl.value.trim().length > 0;
+    const idadeOk = idadeEl.value.trim().length > 0 && !isNaN(Number(idadeEl.value));
+    const allQs   = getAnsweredCount() === 220;
+    return nomeOk && idadeOk && allQs;
+  }
+
+  function updateProgress(){
+    const answered = getAnsweredCount();
+    const pct = Math.round((answered / 220) * 100);
+    progressEl.style.width = pct + '%';
+    counterEl.textContent = `${answered} / 220 respondidas`;
+    if (canSubmit()){
+      submitBtn.disabled = false;
+      submitBtn.classList.add('ready');
+    } else {
+      submitBtn.disabled = true;
+      submitBtn.classList.remove('ready');
+    }
+  }
+
+  function collectAnswers(){
+    const answers = [];
+    for (let i = 1; i <= 220; i++){
+      const sel = document.querySelector(`select[name="q${i}"]`);
+      if (!sel || sel.value === '') return null;
+      answers.push(sel.value);
+    }
+    return answers;
+  }
+
+  function wireEvents(){
+    listEl.addEventListener('change', updateProgress);
+    nomeEl.addEventListener('input', updateProgress);
+    idadeEl.addEventListener('input', updateProgress);
+
+    submitBtn.addEventListener('click', () => {
+      if (!canSubmit()){ alert('Preencha Nome, Idade e todas as 220 respostas.'); return; }
+      const answers = collectAnswers();
+      if (!answers){ alert('Ainda há itens sem resposta.'); return; }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Enviando...';
+
+      google.script.run
+        .withSuccessHandler((res) => {
+          alert('Respostas enviadas! ID: ' + res.submissionId);
+          window.location.href='?page=home';
+        })
+        .withFailureHandler((err) => {
+          alert('Falha no envio: ' + (err && err.message ? err.message : err));
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Enviar respostas';
+        })
+        .submitAnswers({
+          nome: nomeEl.value.trim(),
+          idade: idadeEl.value.trim(),
+          answers
+        });
+    });
+  }
+
+  // Init
+  renderQuestions();
+  updateProgress();
+  wireEvents();
+</script>
+</body>
+</html>

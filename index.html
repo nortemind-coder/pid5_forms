@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Questionário PID-5</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{
+      --brand:#1f2937; --bege:#debba2; --bg:#f9fafb; --card:#ffffff;
+      --text:#111827; --muted:#6b7280; --radius:16px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:linear-gradient(180deg,#fff,var(--bg))}
+    header{padding:24px;background:var(--card);border-bottom:1px solid #eee;position:sticky;top:0;z-index:10}
+    .container{max-width:960px;margin:0 auto;padding:24px}
+    .hero{display:grid;gap:16px;grid-template-columns:1.2fr;padding:24px;background:var(--card);border-radius:var(--radius);box-shadow:0 8px 24px rgba(0,0,0,.06)}
+    .title{font-size:clamp(24px,4vw,40px);line-height:1.1;margin:0}
+    .subtitle{color:var(--muted);margin:8px 0 0}
+    .cta{margin-top:16px;display:inline-flex;align-items:center;gap:8px;border:none;background:var(--brand);color:#fff;padding:12px 18px;border-radius:999px;cursor:pointer;font-weight:600;text-decoration:none;transition:transform .05s ease,opacity .2s ease}
+    .cta:active{transform:translateY(1px)}
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:24px}
+    .card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.05);border:1px solid #eee}
+    footer{margin-top:32px;padding:16px;text-align:center;color:var(--muted)}
+  </style>
+</head>
+<body>
+<header>
+  <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+    <div style="font-weight:800;letter-spacing:.3px;">PID-5 – Personality Inventory for DSM-5</div>
+    <a class="cta" href="form.html" aria-label="Ir para o formulário">Começar</a>
+  </div>
+</header>
+<main class="container">
+  <section class="hero">
+    <div>
+      <h1 class="title">Bem-vindo!</h1>
+      <p class="subtitle">Você responderá <strong>220 afirmações</strong> em escala de 5 pontos. As respostas são registradas com segurança em um repositório privado do terapeuta.</p>
+      <a class="cta" href="form.html">Iniciar agora</a>
+    </div>
+  </section>
+  <section class="cards">
+    <div class="card"><h3>Privacidade</h3><p>Registramos um ID anônimo, data/hora, Nome e Idade. Sem dados sensíveis.</p></div>
+    <div class="card"><h3>Tempo</h3><p>~15–25 min. A barra no rodapé mostra seu progresso.</p></div>
+    <div class="card"><h3>Cuidados</h3><p>Não saia do formulário até ter enviado para não perder as respostas.</p></div>
+  </section>
+  <footer>© <span id="year"></span> — Nortemind Terapia</footer>
+</main>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

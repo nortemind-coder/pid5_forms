@@ -308,6 +308,15 @@
   const nomeEl     = document.getElementById('nome');
   const idadeEl    = document.getElementById('idade');
 
+  // === INTEGRAÇÃO COM MAKE (Webhook) ===
+  const WEBHOOK_URL = "https://hook.us2.make.com/rkdvg7pwk0drs9fabqob4v4qtvh29hug";
+
+  function uuidv4(){
+    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+    );
+  }
+
   function renderQuestions(){
     const frag = document.createDocumentFragment();
     QUESTIONS.forEach((q, idx) => {
@@ -372,12 +381,13 @@
     }
   }
 
+  // Envia q1..q220 como propriedades individuais (fácil de mapear no Sheets pelo Make)
   function collectAnswers(){
-    const answers = [];
+    const answers = {};
     for (let i = 1; i <= 220; i++){
       const sel = document.querySelector(`select[name="q${i}"]`);
       if (!sel || sel.value === '') return null;
-      answers.push(sel.value);
+      answers[`q${i}`] = sel.value;
     }
     return answers;
   }
@@ -387,29 +397,45 @@
     nomeEl.addEventListener('input', updateProgress);
     idadeEl.addEventListener('input', updateProgress);
 
-    submitBtn.addEventListener('click', () => {
+    // >>> ENVIO PARA O MAKE (Webhook)
+    submitBtn.addEventListener('click', async () => {
       if (!canSubmit()){ alert('Preencha Nome, Idade e todas as 220 respostas.'); return; }
       const answers = collectAnswers();
       if (!answers){ alert('Ainda há itens sem resposta.'); return; }
 
+      const payload = {
+        submissionId: uuidv4(),
+        timestamp: new Date().toISOString(),
+        nome: nomeEl.value.trim(),
+        idade: nomeEl.value.trim() ? idadeEl.value.trim() : "",
+        ...answers
+      };
+
       submitBtn.disabled = true;
+      const original = submitBtn.textContent;
       submitBtn.textContent = 'Enviando...';
 
-      google.script.run
-        .withSuccessHandler((res) => {
-          alert('Respostas enviadas! ID: ' + res.submissionId);
-          window.location.href='?page=home';
-        })
-        .withFailureHandler((err) => {
-          alert('Falha no envio: ' + (err && err.message ? err.message : err));
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Enviar respostas';
-        })
-        .submitAnswers({
-          nome: nomeEl.value.trim(),
-          idade: idadeEl.value.trim(),
-          answers
+      try {
+        const res = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
+        if (!res.ok) throw new Error(`Falha no envio (${res.status})`);
+
+        alert('Respostas enviadas com sucesso!');
+        // limpa tudo para novo preenchimento
+        document.querySelectorAll('select.select').forEach(s => s.value = '');
+        nomeEl.value = '';
+        idadeEl.value = '';
+        updateProgress();
+      } catch (e) {
+        console.error(e);
+        alert('Não consegui enviar. Tente novamente em instantes.');
+      } finally {
+        submitBtn.disabled = true; // volta a travar até completar tudo de novo
+        submitBtn.textContent = original;
+      }
     });
   }
 
